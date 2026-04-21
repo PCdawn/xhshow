@@ -38,6 +38,7 @@ class XsCommonSigner:
             xt = 0
         xt_int = int(xt)
         x8 = self.config.XSCOMMON_X8_STATIC
+        # MD5 here follows the upstream production signing protocol.
         md5_hex = hashlib.md5(f"{xt_int}{xs}{x8}".encode()).hexdigest()
         x9 = CRC32.crc32_js_int(bytes.fromhex(md5_hex))
 
