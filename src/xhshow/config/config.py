@@ -132,6 +132,7 @@ class CryptoConfig:
         "Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0"
     )
 
+    # Static x8 seed used by the current upstream x-s-common protocol.
     XSCOMMON_X8_STATIC: str = (
         "I38rHdgsjopgIvesdVwgIC+oIELmBZ5e3VwXLgFTIxS3bqwErFeexd0ekncAzMFYnqthIhJeSfMDKutRI3KsYorWHPtGrbV0P9Wf"
         "Ii/eWc6eYqtyQApPI37ekmR6QL+5Ii6sdneeSfqYHqwl2qt5B0DBIx+PGDi/sVtkIxdsxuwr4qtiIhuaIE3e3LV0I3VTIC7e0utl2"

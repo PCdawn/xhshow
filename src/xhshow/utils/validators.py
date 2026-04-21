@@ -248,6 +248,8 @@ def validate_xs_common_params(func: F) -> F:  # type: ignore[misc]  # noqa: UP04
 
         if xt is not None and not isinstance(xt, int | str):
             raise TypeError(f"xt must be int, str or None, got {type(xt).__name__}")
+        if isinstance(xt, str) and not xt.isdigit():
+            raise ValueError("xt must be numeric when provided as str")
 
         return func(
             self,
