@@ -1,5 +1,6 @@
 import hashlib
 import json
+import logging
 import subprocess
 import time
 import urllib.parse
@@ -20,10 +21,13 @@ from .utils.validators import (
 )
 
 __all__ = ["Xhshow", "SessionManager", "SignState"]
+LOGGER = logging.getLogger(__name__)
 
 
 class Xhshow:
     """Xiaohongshu request client wrapper"""
+    JS_SIGN_TIMEOUT_SECONDS = 10
+    JS_SIGN_SCRIPT_NAME = "xhs_main_260411.js"
 
     def __init__(self, config: CryptoConfig | None = None):
         self.config = config or CryptoConfig()
@@ -423,7 +427,7 @@ class Xhshow:
 
         Raises RuntimeError when JS execution fails.
         """
-        script_path = Path(__file__).resolve().parent / "static" / "xhs_main_260411.js"
+        script_path = Path(__file__).resolve().parent / "static" / self.JS_SIGN_SCRIPT_NAME
         runner = (
             "const mod=require(process.argv[1]);"
             "const method=process.argv[2];"
@@ -432,7 +436,7 @@ class Xhshow:
             "const a1=process.argv[5];"
             "const payload=payloadRaw==='__NONE__'?null:JSON.parse(payloadRaw);"
             "const r=mod.get_request_headers_params(uri,payload,a1,method);"
-            "process.stdout.write(JSON.stringify(r));"
+            "process.stdout.write('__XHSHOW_JSON__'+JSON.stringify(r));"
         )
         payload_str = "__NONE__" if payload is None else json.dumps(payload, ensure_ascii=False)
         proc = subprocess.run(
@@ -440,19 +444,36 @@ class Xhshow:
             capture_output=True,
             text=True,
             check=False,
-            timeout=10,
+            timeout=self.JS_SIGN_TIMEOUT_SECONDS,
         )
         if proc.returncode != 0:
             raise RuntimeError(f"JS signer failed: {proc.stderr.strip()}")
+        marker = "__XHSHOW_JSON__"
+        stdout = proc.stdout
+        idx = stdout.rfind(marker)
+        if idx < 0:
+            raise RuntimeError(f"Invalid JS signer output (marker not found): {stdout!r}")
+        json_part = stdout[idx + len(marker) :].strip()
+        if not json_part:
+            raise RuntimeError("Invalid JS signer output: empty JSON payload")
+        if not stdout:
+            raise RuntimeError("Invalid JS signer output: empty stdout")
         try:
-            data = json.loads(proc.stdout.strip().splitlines()[-1])
-        except (json.JSONDecodeError, IndexError) as e:
+            data = json.loads(json_part)
+        except json.JSONDecodeError as e:
             raise RuntimeError(f"Invalid JS signer output: {proc.stdout!r}") from e
         return {
             "x-s": data["xs"],
             "x-s-common": data["xs_common"],
             "x-t": str(data["xt"]),
         }
+
+    def _coerce_xt_millis(self, x_t: str) -> int:
+        """Convert x-t value to millisecond integer."""
+        try:
+            return int(x_t.strip())
+        except (ValueError, AttributeError) as e:
+            raise ValueError(f"Invalid x-t value (must be numeric millisecond timestamp): {x_t!r}") from e
 
     def sign_headers(
         self,
@@ -528,7 +549,8 @@ class Xhshow:
                 x_s = js_headers["x-s"]
                 x_s_common = js_headers["x-s-common"]
                 x_t = js_headers["x-t"]
-            except (FileNotFoundError, RuntimeError, subprocess.TimeoutExpired):
+            except (FileNotFoundError, RuntimeError, subprocess.TimeoutExpired) as e:
+                LOGGER.warning("Falling back to legacy Python signer (%s): %s", type(e).__name__, e)
                 x_s = self.sign_xs(method_upper, uri, a1_value, xsec_appid, request_data, timestamp, session)
                 x_t = str(self.get_x_t(timestamp))
                 x_s_common = self.sign_xs_common(cookie_dict)
@@ -538,7 +560,7 @@ class Xhshow:
             x_s_common = self.sign_xs_common(cookie_dict)
 
         x_b3_traceid = self.get_b3_trace_id()
-        x_xray_traceid = self.get_xray_trace_id(timestamp=int(x_t))
+        x_xray_traceid = self.get_xray_trace_id(timestamp=self._coerce_xt_millis(x_t))
 
         return {
             "x-s": x_s,
