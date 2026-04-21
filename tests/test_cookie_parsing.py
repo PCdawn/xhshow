@@ -1,5 +1,7 @@
 """Tests for cookie parsing and sign_headers functionality"""
 
+import json
+
 import pytest
 
 from xhshow import Xhshow
@@ -143,6 +145,21 @@ class TestSignXsCommon:
 
         assert isinstance(result, str)
         assert len(result) > 0
+
+    def test_sign_xs_common_with_xs_xt_fields(self):
+        """测试新算法下 x-s-common 会携带 x-s/x-t 关联字段"""
+        cookies = {"a1": "test_a1_value", "web_session": "test_session"}
+        xs = "XYS_test_signature"
+        xt = 1764902784843
+
+        result = self.client.sign_xs_common(cookies, xs=xs, xt=xt)
+        decoded = json.loads(self.client.crypto_processor.b64encoder.decode(result))
+
+        assert decoded["x1"] == "4.3.2"
+        assert decoded["x4"] == "4.84.1"
+        assert decoded["x6"] == xt
+        assert decoded["x7"] == xs
+        assert decoded["x8"] == self.client.config.XSCOMMON_X8_STATIC
 
 
 class TestXsCommonSigner:

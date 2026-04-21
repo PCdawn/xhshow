@@ -160,19 +160,23 @@ class Xhshow:
     def sign_xs_common(
         self,
         cookie_dict: dict[str, Any] | str,
+        xs: str = "",
+        xt: int | str | None = None,
     ) -> str:
         """
         Generate x-s-common signature
 
         Args:
             cookie_dict: Complete cookie dictionary or cookie string
+            xs: x-s signature value (recommended to pass from sign_xs result)
+            xt: x-t value in milliseconds
 
         Returns:
             Encoded x-s-common signature string
         """
         parsed_cookies = self._parse_cookies(cookie_dict)
         signer = XsCommonSigner(self.config)
-        return signer.sign(parsed_cookies)
+        return signer.sign(parsed_cookies, xs=xs, xt=xt)
 
     @validate_get_signature_params
     def sign_xs_get(
@@ -242,12 +246,16 @@ class Xhshow:
     def sign_xsc(
         self,
         cookie_dict: dict[str, Any] | str,
+        xs: str = "",
+        xt: int | str | None = None,
     ) -> str:
         """
         Convenience wrapper to generate the `x-s-common` signature.
 
         Args:
             cookie_dict: Enter your complete cookie dictionary
+            xs: x-s signature value (recommended to pass from sign_xs result)
+            xt: x-t value in milliseconds
 
         Returns:
             Encoded signature string suitable for the `x-s-common` header.
@@ -256,7 +264,7 @@ class Xhshow:
             TypeError: Parameter type error
             ValueError: Parameter value error
         """
-        return self.sign_xs_common(cookie_dict)
+        return self.sign_xs_common(cookie_dict, xs=xs, xt=xt)
 
     def decode_x3(self, x3_signature: str) -> bytearray:
         """
@@ -477,9 +485,9 @@ class Xhshow:
         if not a1_value:
             raise ValueError("Missing 'a1' in cookies")
 
-        x_s = self.sign_xs(method_upper, uri, a1_value, xsec_appid, request_data, timestamp, session)
-        x_s_common = self.sign_xs_common(cookie_dict)
         x_t = self.get_x_t(timestamp)
+        x_s = self.sign_xs(method_upper, uri, a1_value, xsec_appid, request_data, timestamp, session)
+        x_s_common = self.sign_xs_common(cookie_dict, xs=x_s, xt=x_t)
         x_b3_traceid = self.get_b3_trace_id()
         x_xray_traceid = self.get_xray_trace_id(timestamp=int(timestamp * 1000))
 

@@ -18,11 +18,11 @@ def mock_crypto_processor():
 
         # Set up the config mock to return a real dictionary
         mock_instance.config.SIGNATURE_DATA_TEMPLATE = {
-            "x0": "4.2.6",
+            "x0": "4.3.2",
             "x1": "xhs-pc-web",
             "x2": "Windows",
             "x3": "",
-            "x4": "",
+            "x4": "object",
         }
         mock_instance.config.X3_PREFIX = "mns0301_"
         mock_instance.config.XYS_PREFIX = "XYS_"

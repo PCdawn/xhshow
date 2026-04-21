@@ -172,8 +172,8 @@ x_s = client.sign_xs_get(
 x_t = client.get_x_t(timestamp=timestamp)
 x_xray_traceid = client.get_xray_trace_id(timestamp=int(timestamp * 1000))
 
-# 生成 x-s-common 签名
-# x-s-common 签名需要完整的 cookies
+# 生成 x-s-common 签名（新算法依赖 x-s 与 x-t）
+# 推荐优先使用 sign_headers_* 自动生成，避免参数不一致
 cookies = {
     "a1": "your_a1_value",
     "web_session": "your_web_session",
@@ -181,14 +181,14 @@ cookies = {
 }
 
 # 方式1: 使用 sign_xsc 别名方法（推荐）
-xs_common = client.sign_xsc(cookie_dict=cookies)
+xs_common = client.sign_xsc(cookie_dict=cookies, xs=x_s, xt=x_t)
 
 # 方式2: 使用完整方法名
-xs_common = client.sign_xs_common(cookie_dict=cookies)
+xs_common = client.sign_xs_common(cookie_dict=cookies, xs=x_s, xt=x_t)
 
 # 方式3: 支持 Cookie 字符串格式
 cookie_string = "a1=your_a1_value; web_session=your_web_session; webId=your_web_id"
-xs_common = client.sign_xsc(cookie_dict=cookie_string)
+xs_common = client.sign_xsc(cookie_dict=cookie_string, xs=x_s, xt=x_t)
 
 # 使用在请求中
 headers = {
@@ -290,7 +290,7 @@ from xhshow import CryptoConfig, Xhshow
 
 custom_config = CryptoConfig().with_overrides(
     X3_PREFIX="custom_",
-    SIGNATURE_DATA_TEMPLATE={"x0": "4.2.6", "x1": "xhs-pc-web", "x2": "Windows", "x3": "", "x4": ""},
+    SIGNATURE_DATA_TEMPLATE={"x0": "4.3.2", "x1": "xhs-pc-web", "x2": "Windows", "x3": "", "x4": "object"},
     SEQUENCE_VALUE_MIN=20,
     SEQUENCE_VALUE_MAX=60
 )
@@ -319,6 +319,8 @@ client = Xhshow(config=custom_config)
 
 ### **sign_xsc** 系列方法
 - `cookie_dict`: 完整的 cookie 字典或 cookie 字符串
+- `xs`: 对应请求的 `x-s`
+- `xt`: 对应请求的 `x-t`（毫秒）
 
 ## 开发环境
 
