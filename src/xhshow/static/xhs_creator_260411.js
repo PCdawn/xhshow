@@ -4,8 +4,17 @@
  * 更新日期: 2026-03
  */
 
-// 必须先加载crypto-js
-var CryptoJs = require("crypto-js");
+// 使用 Node 内置 crypto，避免额外 npm 依赖
+var __nodeCrypto = require("crypto");
+var CryptoJs = {
+    MD5: function(input) {
+        return {
+            toString: function() {
+                return __nodeCrypto.createHash("md5").update(String(input)).digest("hex");
+            }
+        };
+    }
+};
 
 // 加载补环境（包含mnsv2函数）
 

@@ -1,7 +1,9 @@
 import hashlib
 import json
+import subprocess
 import time
 import urllib.parse
+from pathlib import Path
 from typing import Any, Literal
 
 from .config import CryptoConfig
@@ -409,6 +411,49 @@ class Xhshow:
             return {k: morsel.value for k, morsel in ck.items()}
         return cookies
 
+    def _run_js_signature_headers(
+        self,
+        method: Literal["GET", "POST"],
+        uri: str,
+        payload: dict[str, Any] | None,
+        a1_value: str,
+    ) -> dict[str, str]:
+        """
+        Use the bundled production JS (4.3.2) to generate xs/xt/xs_common.
+
+        Raises RuntimeError when JS execution fails.
+        """
+        script_path = Path(__file__).resolve().parent / "static" / "xhs_main_260411.js"
+        runner = (
+            "const mod=require(process.argv[1]);"
+            "const method=process.argv[2];"
+            "const uri=process.argv[3];"
+            "const payloadRaw=process.argv[4];"
+            "const a1=process.argv[5];"
+            "const payload=payloadRaw==='__NONE__'?null:JSON.parse(payloadRaw);"
+            "const r=mod.get_request_headers_params(uri,payload,a1,method);"
+            "process.stdout.write(JSON.stringify(r));"
+        )
+        payload_str = "__NONE__" if payload is None else json.dumps(payload, ensure_ascii=False)
+        proc = subprocess.run(
+            ["node", "-e", runner, str(script_path), method, uri, payload_str, a1_value],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=10,
+        )
+        if proc.returncode != 0:
+            raise RuntimeError(f"JS signer failed: {proc.stderr.strip()}")
+        try:
+            data = json.loads(proc.stdout.strip().splitlines()[-1])
+        except (json.JSONDecodeError, IndexError) as e:
+            raise RuntimeError(f"Invalid JS signer output: {proc.stdout!r}") from e
+        return {
+            "x-s": data["xs"],
+            "x-s-common": data["xs_common"],
+            "x-t": str(data["xt"]),
+        }
+
     def sign_headers(
         self,
         method: Literal["GET", "POST"],
@@ -477,16 +522,28 @@ class Xhshow:
         if not a1_value:
             raise ValueError("Missing 'a1' in cookies")
 
-        x_s = self.sign_xs(method_upper, uri, a1_value, xsec_appid, request_data, timestamp, session)
-        x_s_common = self.sign_xs_common(cookie_dict)
-        x_t = self.get_x_t(timestamp)
+        if session is None and timestamp is None:
+            try:
+                js_headers = self._run_js_signature_headers(method_upper, extract_uri(uri), request_data, a1_value)
+                x_s = js_headers["x-s"]
+                x_s_common = js_headers["x-s-common"]
+                x_t = js_headers["x-t"]
+            except (FileNotFoundError, RuntimeError, subprocess.TimeoutExpired):
+                x_s = self.sign_xs(method_upper, uri, a1_value, xsec_appid, request_data, timestamp, session)
+                x_t = str(self.get_x_t(timestamp))
+                x_s_common = self.sign_xs_common(cookie_dict)
+        else:
+            x_s = self.sign_xs(method_upper, uri, a1_value, xsec_appid, request_data, timestamp, session)
+            x_t = str(self.get_x_t(timestamp))
+            x_s_common = self.sign_xs_common(cookie_dict)
+
         x_b3_traceid = self.get_b3_trace_id()
-        x_xray_traceid = self.get_xray_trace_id(timestamp=int(timestamp * 1000))
+        x_xray_traceid = self.get_xray_trace_id(timestamp=int(x_t))
 
         return {
             "x-s": x_s,
             "x-s-common": x_s_common,
-            "x-t": str(x_t),
+            "x-t": x_t,
             "x-b3-traceid": x_b3_traceid,
             "x-xray-traceid": x_xray_traceid,
         }
