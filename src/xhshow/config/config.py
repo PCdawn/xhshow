@@ -85,11 +85,11 @@ class CryptoConfig:
     # Signature data template
     SIGNATURE_DATA_TEMPLATE: dict[str, str] = field(
         default_factory=lambda: {
-            "x0": "4.2.6",
+            "x0": "4.3.2",
             "x1": "xhs-pc-web",
             "x2": "Windows",
             "x3": "",
-            "x4": "",
+            "x4": "object",
         }
     )
 
@@ -113,10 +113,10 @@ class CryptoConfig:
             "s0": 5,
             "s1": "",
             "x0": "1",
-            "x1": "4.2.6",
+            "x1": "4.3.2",
             "x2": "Windows",
             "x3": "xhs-pc-web",
-            "x4": "4.86.0",
+            "x4": "4.84.1",
             "x5": "",
             "x6": "",
             "x7": "",
@@ -130,6 +130,17 @@ class CryptoConfig:
     PUBLIC_USERAGENT: str = (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0"
+    )
+
+    XSCOMMON_X8_STATIC: str = (
+        "I38rHdgsjopgIvesdVwgIC+oIELmBZ5e3VwXLgFTIxS3bqwErFeexd0ekncAzMFYnqthIhJeSfMDKutRI3KsYorWHPtGrbV0P9Wf"
+        "Ii/eWc6eYqtyQApPI37ekmR6QL+5Ii6sdneeSfqYHqwl2qt5B0DBIx+PGDi/sVtkIxdsxuwr4qtiIhuaIE3e3LV0I3VTIC7e0utl2"
+        "ADmsLveDSKsSPw5IEvsiVtJOqw8BuwfPpdeTFWOIx4TIiu6ZPwrPut5IvlaLbgs3qtxIxes1VwHIkumIkIyejgsY/WTge7eSqte/D"
+        "7sDcpipedeYrDtIC6eDVw2IENsSqtlnlSuNjVtIvoekqt3cZ7sVo4gIESyIhE2HBquIxhnqz8gIkIfoqwkICqWGg3sdlOeVPw3IvAe"
+        "0fged0lGIi5s3Mkf2utAIiKsidvekZNeTPt4nAOeWPwEIvkazA6efuwApfosDqw+I3SrIxE5Luwwaqw+reibqrOeYjgskqtgIkdeY"
+        "g0exWbxIhgsfMes6jclIkAe3PtTIirdQqwJ8ut9I36e3PtVIiNe1PtlIi5efVwAHutMGqwxI3QUICEeJaPAGl/siqtMIhVtIieeYuw"
+        "oeWccpj6sDskuIkGyGuwbmPwvICdekVtUQpdeipJs1LELIhvs6ege1VwmrqttIi0sDqtXIENs1SptIi3sfWdeDPw5IxAsVPwx+/GYI"
+        "EmgIvNs1Y0eV7vsWI=="
     )
 
     def with_overrides(self, **kwargs: Any) -> "CryptoConfig":

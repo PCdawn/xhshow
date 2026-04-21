@@ -234,15 +234,26 @@ def validate_xs_common_params(func: F) -> F:  # type: ignore[misc]  # noqa: UP04
     def wrapper(
         self,
         cookie_dict: dict[str, Any] | None = None,
+        xs: Any = "",
+        xt: Any = None,
     ) -> str:
         validator = RequestSignatureValidator()
 
         # Reuse existing validators where possible
         validated_cookie_dict = validator.validate_cookie(cookie_dict)
 
+        if xs is not None and not isinstance(xs, str):
+            raise TypeError(f"xs must be str, got {type(xs).__name__}")
+        validated_xs = xs if xs is not None else ""
+
+        if xt is not None and not isinstance(xt, int | str):
+            raise TypeError(f"xt must be int, str or None, got {type(xt).__name__}")
+
         return func(
             self,
             validated_cookie_dict,
+            validated_xs,
+            xt,
         )
 
     return wrapper  # type: ignore
