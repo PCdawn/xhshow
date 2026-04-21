@@ -456,12 +456,10 @@ class Xhshow:
         json_part = stdout[idx + len(marker) :].strip()
         if not json_part:
             raise RuntimeError("Invalid JS signer output: empty JSON payload")
-        if not stdout:
-            raise RuntimeError("Invalid JS signer output: empty stdout")
         try:
             data = json.loads(json_part)
         except json.JSONDecodeError as e:
-            raise RuntimeError(f"Invalid JS signer output: {proc.stdout!r}") from e
+            raise RuntimeError(f"Invalid JS signer JSON payload: {json_part!r}") from e
         return {
             "x-s": data["xs"],
             "x-s-common": data["xs_common"],
@@ -550,7 +548,7 @@ class Xhshow:
                 x_s_common = js_headers["x-s-common"]
                 x_t = js_headers["x-t"]
             except (FileNotFoundError, RuntimeError, subprocess.TimeoutExpired) as e:
-                LOGGER.warning("Falling back to legacy Python signer (%s): %s", type(e).__name__, e)
+                LOGGER.warning("Falling back to legacy Python signer (%s)", type(e).__name__)
                 x_s = self.sign_xs(method_upper, uri, a1_value, xsec_appid, request_data, timestamp, session)
                 x_t = str(self.get_x_t(timestamp))
                 x_s_common = self.sign_xs_common(cookie_dict)
